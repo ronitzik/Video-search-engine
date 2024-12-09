@@ -3,10 +3,10 @@ import json
 from download_video import download_video
 from scene_detection import detect_scenes 
 from captioning import get_scene_caption
-from search import fuzzy_search_scenes
+from search import fuzzy_search_scenes, SceneCaptionCompleter
 from create_collage import create_collage
 import moondream as md
-
+from prompt_toolkit import prompt
 
 def main():
     # Define the directory for scene images
@@ -58,8 +58,12 @@ def main():
             json.dump(scene_captions, f)
         print("Scene captions saved.")
 
-    # Search captions for a specific word
-    search_word = input("Search the video using a word: ")
+    # Setup the completer with all the words from scene captions
+    caption_completer = SceneCaptionCompleter(scene_captions)
+
+    # Search captions for a specific word using autocomplete
+    search_word = prompt("Search the video using a word: ", completer=caption_completer)
+
     matching_scenes = fuzzy_search_scenes(search_word, scene_captions)
 
     # Create collage from matching scenes
