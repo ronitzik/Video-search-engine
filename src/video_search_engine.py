@@ -1,8 +1,7 @@
-# video_search_engine.py
 import os
 import json
 from download_video import download_video
-from scene_detection import detect_scenes, save_scene_images
+from scene_detection import detect_scenes 
 from captioning import get_scene_caption
 from search import fuzzy_search_scenes
 from create_collage import create_collage
@@ -32,12 +31,10 @@ def main():
         search_query = input("Enter the search query: ")
         video_path = download_video(search_query)
 
-        # Detect scenes
-        scene_list = detect_scenes(video_path)
+        # Detect scenes and return scene list with paths for images
+        scene_list = detect_scenes(video_path, threshold=30.0, min_scene_len=15)
 
-        # Save scene images in the specified directory
-        scenes_dir = save_scene_images(video_path, scene_list)
-
+        # Initialize the model once
         model_path = (
             r"C:\\Users\\Ron\\Downloads\\moondream-0_5b-int8.mf\\moondream-0_5b-int8.mf"
         )
@@ -45,17 +42,14 @@ def main():
 
         # Generate captions for each scene
         scene_captions = {}
-        for i in range(len(scene_list)):
-            image_path = os.path.join(scenes_dir, f"scene_{i}.jpg")
+        for (scene_index, image_path) in enumerate(scene_list):
             if os.path.exists(image_path):
                 try:
-                    caption = get_scene_caption(
-                        image_path, model
-                    ) 
-                    scene_captions[i] = caption
-                    print(f"Caption for scene {i}: {caption}")
+                    caption = get_scene_caption(image_path, model)
+                    scene_captions[scene_index] = caption
+                    print(f"Caption for scene {scene_index}: {caption}")
                 except Exception as e:
-                    print(f"Error generating caption for scene {i}: {e}")
+                    print(f"Error generating caption for scene {scene_index}: {e}")
             else:
                 print(f"Image not found: {image_path}")
 
@@ -65,7 +59,7 @@ def main():
         print("Scene captions saved.")
 
     # Search captions for a specific word
-    search_word = input("Enter a word to search for: ")
+    search_word = input("Search the video using a word: ")
     matching_scenes = fuzzy_search_scenes(search_word, scene_captions)
 
     # Create collage from matching scenes
