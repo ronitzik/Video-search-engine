@@ -1,18 +1,41 @@
+# main.py
 import os
 import json
 from download_video import download_video
-from scene_detection import detect_scenes 
+from scene_detection import detect_scenes
 from captioning import get_scene_caption
 from search import fuzzy_search_scenes, SceneCaptionCompleter
 from create_collage import create_collage
 import moondream as md
 from prompt_toolkit import prompt
+from gemini_video_model import analyze_video, extract_frames
+
 
 def main():
     # Define the directory for scene images
     scenes_dir = "scenes"
     captions_file = "scene_captions.json"
 
+    # Ask the user for a search query and download the video
+    search_query = input("Enter the search query: ")
+    video_path = download_video(search_query)
+
+    # Ask the user whether they want to use an image model or video model
+    model_type = input(
+        "Would you like to search the video using an image model (1) or a video model (2)? "
+    )
+
+    if model_type == "1":
+        # Existing logic (image model)
+        use_image_model(video_path, scenes_dir, captions_file)
+    elif model_type == "2":
+        # New logic (video model)
+        use_video_model(video_path, scenes_dir)
+    else:
+        print("Invalid choice. Please select 1 for image model or 2 for video model.")
+
+
+def use_image_model(video_path, scenes_dir, captions_file):
     # Check if scene_captions.json exists and is not empty
     if os.path.exists(captions_file):
         try:
@@ -27,10 +50,6 @@ def main():
         scene_captions = None
 
     if not scene_captions:
-        # Download video based on search query
-        search_query = input("Enter the search query: ")
-        video_path = download_video(search_query)
-
         # Detect scenes and return scene list with paths for images
         scene_list = detect_scenes(video_path, threshold=30.0, min_scene_len=15)
 
@@ -42,7 +61,7 @@ def main():
 
         # Generate captions for each scene
         scene_captions = {}
-        for (scene_index, image_path) in enumerate(scene_list):
+        for scene_index, image_path in enumerate(scene_list):
             if os.path.exists(image_path):
                 try:
                     caption = get_scene_caption(image_path, model)
@@ -72,6 +91,28 @@ def main():
         print("Collage created and saved as collage.png.")
     else:
         print(f"No matching scenes found for the word: {search_word}")
+
+
+def use_video_model(video_path, scenes_dir):
+    # Ask the user what they want to find in the video
+    search_query = input(
+        "Using a video model. What would you like me to find in the video? "
+    )
+
+    # Get the scenes that match the user input
+    timestamps = analyze_video(video_path, search_query)
+
+    if timestamps:
+        # Extract frames at the specified timestamps
+        extracted_frames = extract_frames(video_path, timestamps, scenes_dir)
+
+        # Create a collage from the extracted frames
+        create_collage(extracted_frames, scenes_dir)
+        print("Collage created and saved as collage.png.")
+    else:
+        print(f"No scenes found matching the description: {search_query}")
+
+
 
 
 if __name__ == "__main__":
