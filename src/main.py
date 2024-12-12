@@ -5,7 +5,7 @@ from download_video import download_video
 from scene_detection import detect_scenes
 from captioning import get_scene_caption
 from search import fuzzy_search_scenes, SceneCaptionCompleter
-from create_collage import create_collage
+from create_collage import create_collage_for_video, create_collage_for_images
 import moondream as md
 from prompt_toolkit import prompt
 from gemini_video_model import analyze_video, extract_frames
@@ -61,16 +61,15 @@ def use_image_model(video_path, scenes_dir, captions_file):
 
         # Generate captions for each scene
         scene_captions = {}
-        for scene_index, image_path in enumerate(scene_list):
+        for i in range(len(scene_list)):
+            image_path = os.path.join(scenes_dir, f"scene_{i}.jpg")
             if os.path.exists(image_path):
                 try:
                     caption = get_scene_caption(image_path, model)
-                    scene_captions[scene_index] = caption
-                    print(f"Caption for scene {scene_index}: {caption}")
+                    scene_captions[i] = caption
+                    print(f"Caption for scene {i}: {caption}")
                 except Exception as e:
-                    print(f"Error generating caption for scene {scene_index}: {e}")
-            else:
-                print(f"Image not found: {image_path}")
+                    print(f"Error generating caption for scene {i}: {e}")
 
         # Save captions to JSON file
         with open(captions_file, "w") as f:
@@ -87,7 +86,7 @@ def use_image_model(video_path, scenes_dir, captions_file):
 
     # Create collage from matching scenes
     if matching_scenes:
-        create_collage(matching_scenes, scenes_dir)
+        create_collage_for_images(matching_scenes, scenes_dir)
         print("Collage created and saved as collage.png.")
     else:
         print(f"No matching scenes found for the word: {search_word}")
@@ -101,18 +100,16 @@ def use_video_model(video_path, scenes_dir):
 
     # Get the scenes that match the user input
     timestamps = analyze_video(video_path, search_query)
-
+    print(timestamps)
     if timestamps:
         # Extract frames at the specified timestamps
         extracted_frames = extract_frames(video_path, timestamps, scenes_dir)
 
         # Create a collage from the extracted frames
-        create_collage(extracted_frames, scenes_dir)
+        create_collage_for_video(extracted_frames, scenes_dir)
         print("Collage created and saved as collage.png.")
     else:
         print(f"No scenes found matching the description: {search_query}")
-
-
 
 
 if __name__ == "__main__":
