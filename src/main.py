@@ -53,10 +53,7 @@ def use_image_model(video_path, scenes_dir, captions_file):
         # Detect scenes and return scene list with paths for images
         scene_list = detect_scenes(video_path, threshold=30.0, min_scene_len=15)
 
-        # Initialize the model once
-        model_path = (
-            r"C:\\Users\\Ron\\Downloads\\moondream-0_5b-int8.mf\\moondream-0_5b-int8.mf"
-        )
+        model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "moondream-2b-int8.mf")
         model = md.vl(model=model_path)
 
         # Generate captions for each scene
@@ -100,7 +97,6 @@ def use_video_model(video_path, scenes_dir):
 
     # Get the scenes that match the user input
     timestamps = analyze_video(video_path, search_query)
-    print(timestamps)
     if timestamps:
         # Extract frames at the specified timestamps
         extracted_frames = extract_frames(video_path, timestamps, scenes_dir)
