@@ -50,23 +50,20 @@ def use_image_model(video_path, scenes_dir, captions_file):
         scene_captions = None
 
     if not scene_captions:
-        # Detect scenes and return scene list with paths for images
-        scene_list = detect_scenes(video_path, threshold=30.0, min_scene_len=15)
-
         model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "moondream-2b-int8.mf")
         model = md.vl(model=model_path)
 
         # Generate captions for each scene
         scene_captions = {}
-        for i in range(len(scene_list)):
-            image_path = os.path.join(scenes_dir, f"scene_{i}.jpg")
-            if os.path.exists(image_path):
-                try:
-                    caption = get_scene_caption(image_path, model)
-                    scene_captions[i] = caption
-                    print(f"Caption for scene {i}: {caption}")
-                except Exception as e:
-                    print(f"Error generating caption for scene {i}: {e}")
+        image_files = [f for f in os.listdir(scenes_dir) if f.endswith(".jpg")]
+        for i, image_file in enumerate(sorted(image_files)):
+            image_path = os.path.join(scenes_dir, image_file)
+            try:
+                caption = get_scene_caption(image_path, model)
+                scene_captions[i] = caption
+                print(f"Caption for scene {i}: {caption}")
+            except Exception as e:
+                print(f"Error generating caption for scene {i}: {e}")
 
         # Save captions to JSON file
         with open(captions_file, "w") as f:

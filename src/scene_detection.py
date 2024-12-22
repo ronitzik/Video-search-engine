@@ -1,60 +1,42 @@
 # scene_detection.py
-import cv2
 import os
 from scenedetect import VideoManager, SceneManager
 from scenedetect.detectors import ContentDetector
+from scenedetect.scene_manager import save_images
 
 
-def detect_scenes(video_path, threshold, min_scene_len):
-    """
-    Detect scenes in the video.
-    """
+def detect_scenes(video_path, output_folder):
+    """Detect scenes and save images to the output folder."""
+    # Check if scenes already exist
+    if os.path.exists(output_folder) and any(f.endswith(".jpg") for f in os.listdir(output_folder)):
+        print(f"Skipping scene detection because scenes are already exist..")
+        return
+
     video_manager = VideoManager([video_path])
     scene_manager = SceneManager()
-    scene_manager.add_detector(
-        ContentDetector(threshold=threshold, min_scene_len=min_scene_len)
-    )
+    scene_manager.add_detector(ContentDetector(threshold=30.0))
+    video_manager.set_downscale_factor()
     video_manager.start()
     scene_manager.detect_scenes(frame_source=video_manager)
-    scene_list = scene_manager.get_scene_list()
 
-    print(f"Detected scenes: {len(scene_list)}")
+    # Retrieve the list of detected scenes
+    scenes = scene_manager.get_scene_list()
+    print(f"Detected {len(scenes)} scenes.")
 
-    # Create the scenes folder if it doesn't exist
-    if not os.path.exists("scenes"):
-        os.makedirs("scenes")
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 
-    cap = cv2.VideoCapture(video_path)
-
-    if not cap.isOpened():
-        print("Error: Couldn't open the video file.")
-        return []
-
-    scene_images = []
-
-    for i, scene in enumerate(scene_list):
-        # Extract the start frame of each scene
-        scene_start_frame = scene[0]
-
-        scene_start_frame = int(scene_start_frame)
-
-        # Seek to the start frame of the scene
-        cap.set(cv2.CAP_PROP_POS_FRAMES, scene_start_frame)
-
-        # Read the frame at that position
-        ret, frame = cap.read()
-
-        # If a frame is successfully read, save the image
-        if ret:
-            # Save the image to the 'scenes' folder with the scene number as part of the filename
-            image_path = f"scenes/scene_{i}.jpg"
-            cv2.imwrite(image_path, frame)
-            scene_images.append((i, image_path))
-        else:
-            print(f"Failed to read frame for Scene {i + 1}")
-
-    cap.release()
+    # Save images for each scene
+    save_images(
+        scene_list=scenes,
+        video=video_manager,
+        num_images=1,
+        frame_margin=1,
+        image_extension='jpg',
+        encoder_param=95,
+        image_name_template='$VIDEO_NAME-Scene-$SCENE_NUMBER-$IMAGE_NUMBER',
+        output_dir=output_folder,
+        show_progress=True,
+    )
 
     video_manager.release()
-
-    return scene_images
